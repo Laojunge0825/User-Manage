@@ -148,8 +148,8 @@ export default {
     findTableList(){
       findByPage(this.pageVo).then( res => {
         this.tableData = res.data.data.records
-        this.total =res.data.data.total
-        console.log(this.total)
+        this.total = parseInt(res.data.data.total)
+
       });
     },
 

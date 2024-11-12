@@ -31,7 +31,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
                 return Result.toFiled("修改失败，id不存在");
             }
         }else{
-            user.setUserId(System.currentTimeMillis());
+//            user.setUserId(System.currentTimeMillis());
             res = baseMapper.insert(user);
             if(res == 1){
                 return Result.toOk("添加成功");
