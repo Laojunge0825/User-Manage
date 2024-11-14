@@ -8,27 +8,11 @@
   <div>
   <el-table
       :data="tableData"
-      border
-      style="width: 100%">
-    <el-table-column
-        prop="userName"
-        label="用户姓名"
-        width="150">
-    </el-table-column>
-    <el-table-column
-        prop="age"
-        label="用户年龄"
-        width="120">
-    </el-table-column>
-    <el-table-column
-        prop="birthday"
-        label="用户生日"
-        width="120"
-        :formatter="dateFormatter">
-    </el-table-column>
-    <el-table-column
-        label="操作"
-        width="160">
+      border>
+    <el-table-column prop="userName" label="用户姓名"></el-table-column>
+    <el-table-column prop="age" label="用户年龄"></el-table-column>
+    <el-table-column prop="birthdayStr" label="用户生日" ></el-table-column>
+    <el-table-column  fixed="right"  label="操作" width="160">
       <template slot-scope="scope">
         <el-button @click="updateForm(scope.row)" type="primary" size="small">修改</el-button>
         <el-button @click="deleteOne(scope.row)" type="danger" size="small">删除</el-button>
@@ -51,20 +35,20 @@
 
     <div id="addForm">
       <el-dialog title="请填写信息" :visible.sync="IsAddForm" width="30%">
-        <el-form :model="userInfo">
+        <el-form ref="addForm"  :rules="rules" :model="userInfo">
 
-          <el-form-item label="姓名" label-width="15%">
+          <el-form-item label="姓名" label-width="15%" prop="userName">
             <el-input v-model="userInfo.userName" autocomplete="off" style="width: 90%;" ></el-input>
           </el-form-item>
 
-          <el-form-item label="年龄" label-width="15%">
-            <el-input v-model.number="userInfo.age" autocomplete="off" style="width: 90%;"></el-input>
+          <el-form-item label="年龄" label-width="15%" prop="age">
+            <el-input v-model.number="userInfo.age"  autocomplete="off" style="width: 90%;"></el-input>
           </el-form-item>
 
-          <el-form-item label="生日" label-width="15%">
+          <el-form-item label="生日" label-width="15%" prop="birthday">
             <el-date-picker
                 v-model="userInfo.birthday"
-                type="datetime"
+                type="date"
                 placeholder="选择日期时间">
             </el-date-picker>
 
@@ -81,20 +65,20 @@
 
     <div id="updateForm">
       <el-dialog title="请填写信息" :visible.sync="IsUpdateForm" width="30%">
-        <el-form :model="userInfo">
+        <el-form ref="updateForm" :rules="rules" :model="userInfo">
 
-          <el-form-item label="姓名" label-width="15%">
+          <el-form-item label="姓名" label-width="15%"  prop="userName">
             <el-input v-model="userInfo.userName" autocomplete="off" style="width: 90%;" ></el-input>
           </el-form-item>
 
-          <el-form-item label="年龄" label-width="15%">
-            <el-input v-model.number="userInfo.age" autocomplete="off" style="width: 90%;"></el-input>
+          <el-form-item label="年龄"  label-width="15%" prop="age">
+            <el-input v-model.number="userInfo.age"  autocomplete="off" style="width: 90%;"></el-input>
           </el-form-item>
 
-          <el-form-item label="生日" label-width="15%">
+          <el-form-item label="生日" label-width="15%" prop="birthday">
             <el-date-picker
                 v-model="userInfo.birthday"
-                type="datetime"
+                type="date"
                 placeholder="选择日期时间">
             </el-date-picker>
 
@@ -126,16 +110,32 @@ export default {
       IsUpdateForm:false,
       tableData: [{
         userName: '王潇',
-        age: 2,
+        age: 0,
         birthday: '2000-05-05'
       }],
+      rules :{
+        userName: [
+          {required: true , message: "请输入用户名称", trigger: "blur"},
+          {min: 2, max: 5, message: "长度在 2 到 5 个字符", trigger: "blur"}
+        ],
+        age: [
+          { required: true, message: '请输入年龄', trigger: ['input', 'blur'] },
+          { type: 'number', message: '年龄必须为数字', trigger: ['input', 'blur'] },
+          { type: 'number' , min: 0, max: 150, message: '年龄需在0到150之间', trigger: ['input', 'blur'] }
+        ],
+        birthday: [
+          { required: true, message: '请选择生日', trigger: 'blur' }
+        ]
+      },
       pageVo:{
         pageSize:5,
         pageNum:1,
         userName:''
       },
       userInfo:{
-
+        userName: '',
+        age: '',
+        birthday: ''
       },
       total:0
     }
@@ -153,11 +153,6 @@ export default {
       });
     },
 
-    // 日期转换
-    dateFormatter(row, column, cellValue) {
-      const date = new Date(cellValue);
-      return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-    },
     // 翻页
     PageSizeChange(val){
       this.pageVo.pageSize = val;
@@ -179,12 +174,38 @@ export default {
       this.userInfo = {}
     },
     // 提交新增表单
-    async  submitAddForm(){
-      await saveOrUpdate(this.userInfo)
-      this.cancelAddForm()
-      this.findTableList()
+    async submitAddForm() {
+      try {
+        const valid = await this.$refs["addForm"].validate();
+        if (valid) {
+          await saveOrUpdate(this.userInfo).then(res =>{
+            if(res.data.code === 0){
+              this.$message({
+                type: 'success',
+                message: res.data.msg
+              });
+            }else {
+              this.$message({
+                type: 'error',
+                message: res.data.msg
+              });
+            }
 
+          });
+          await this.cancelAddForm();
+          await this.findTableList();
+        } else {
+          return false;
+        }
+      } catch (error) {
+        this.$message({
+          type: 'info',
+          message: '表单验证失败：'+error
+        });
+        // 这里可以根据具体错误情况进行相应处理，比如提示用户等
+      }
     },
+
 
     // 删除一条用户信息
     deleteOne(row){
@@ -223,10 +244,36 @@ export default {
       this.userInfo = {}
     },
     //提交修改表单
-    async submitUpdateForm(){
-      await  saveOrUpdate(this.userInfo)
-      this.cancelUpdateForm()
-      this.findTableList()
+    async submitUpdateForm() {
+      try {
+        const valid = await this.$refs["updateForm"].validate();
+        if (valid) {
+          await saveOrUpdate(this.userInfo).then(res =>{
+            if(res.data.code === 0){
+              this.$message({
+                type: 'success',
+                message: res.data.msg
+              });
+            }else {
+              this.$message({
+                type: 'error',
+                message: res.data.msg
+              });
+            }
+
+          });
+          await this.cancelUpdateForm();
+          await this.findTableList();
+        } else {
+          return false;
+        }
+      } catch (error) {
+        this.$message({
+          type: 'info',
+          message: '表单验证失败：'+error
+        });
+        // 这里可以根据具体错误情况进行相应处理，比如提示用户等
+      }
     },
 
   },
