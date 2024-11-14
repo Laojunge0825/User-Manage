@@ -42,5 +42,8 @@ public class User implements Serializable {
     private Date birthday;
 
     @TableField(exist = false)
+    private String birthdayStr;
+
+    @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 }

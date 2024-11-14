@@ -6,14 +6,17 @@ import com.manage.domain.User;
 import com.manage.mapper.UserMapper;
 import com.manage.service.UserService;
 import com.manage.util.Result;
+import com.manage.util.TimeConverterUtil;
 import com.manage.vo.PageVo;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 
 /**
 * @author 16422
-* @description 针对表【user】的数据库操作Service实现
-* @createDate 2024-11-08 15:31:03
+* @description  针对表【user】的数据库操作Service实现
+* @createDate  2024-11-08 15:31:03
 */
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
@@ -31,7 +34,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
                 return Result.toFiled("修改失败，id不存在");
             }
         }else{
-//            user.setUserId(System.currentTimeMillis());
+
             res = baseMapper.insert(user);
             if(res == 1){
                 return Result.toOk("添加成功");
@@ -57,10 +60,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public Page<User> findByPage(PageVo pageVo) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        if(pageVo.getUserName() != null){
+        if(pageVo.getUserName() != null && !"".equals(pageVo.getUserName()) ){
             wrapper.like(User::getUserName,pageVo.getUserName());
         }
-        return baseMapper.selectPage(new Page<>(pageVo.getPageNum(),pageVo.getPageSize()),wrapper);
+        Page<User> page = baseMapper.selectPage(new Page<>(pageVo.getPageNum(),pageVo.getPageSize()),wrapper);
+        List<User> users = page.getRecords();
+        users.forEach(u -> {
+            u.setBirthdayStr(TimeConverterUtil.formatLocalDate(u.getBirthday(),"yyyy-MM-dd"));
+        });
+        page.setRecords(users);
+        return page;
     }
 }
 
